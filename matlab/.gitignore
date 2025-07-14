@@ -1,0 +1,15 @@
+artifacts/
+data/
+
+# Cache files
+*.slxc
+
+# Autosave files
+*.asv
+*.m~
+*.autosave
+*.slx.r*
+*.mdl.r*
+
+# Code generation folders
+slprj/
