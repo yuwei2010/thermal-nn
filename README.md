@@ -20,7 +20,7 @@ This repository demonstrates the application of thermal neural networks (TNNs) o
 The data set is freely available at [Kaggle](https://www.kaggle.com/wkirgsn/electric-motor-temperature).
 
 The TNN declaration and its usage are demonstrated in the jupyter notebooks, with tensorflow in `TNN_tensorflow.ipynb` and with PyTorch in `TNN_pytorch.ipynb`.
-
+There is also a MATLAB implementation in the matlab folder, see the corresponding [README for MATLAB](./matlab/README.md).
 
 ## Topology
 
