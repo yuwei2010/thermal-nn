@@ -132,3 +132,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+*.pt
+test/*
+Introduction_Thermal_Hybrid_Modeling.pptx
+Thermal_neural_networks.pdf
