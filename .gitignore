@@ -136,3 +136,10 @@ dmypy.json
 test/*
 Introduction_Thermal_Hybrid_Modeling.pptx
 Thermal_neural_networks.pdf
+~$Introduction_Thermal_Hybrid_Modeling.pptx
+playground/test_sample_weights.npy
+playground/test_tensor.npy
+playground/train_sample_weights.npy
+playground/train_tensor.npy
+usecase/10_yuping/MeasurementData_Merged_EFAD.csv
+usecase/10_yuping/MeasurementData_eACL_Merged.csv
