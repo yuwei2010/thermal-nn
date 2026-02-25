@@ -146,3 +146,4 @@ usecase/10_yuping/MeasurementData_eACL_Merged.csv
 20250528_PS_FT_THER_SW_Models_on_ECU_for_thermal_protection_of_ePowertrain.pdf
 playground/optuna.db
 playground/data/20_Training_Sets/10_Demo/*.npy
+run_training.sh
