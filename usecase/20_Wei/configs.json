@@ -1,0 +1,83 @@
+{
+    "cond_net_layer": [
+        1,
+        10
+    ],
+    "cond_net_units": [
+        2,
+        50
+    ],
+    "ploss_net_layers": [
+        1,
+        10
+    ],
+    "ploss_net_units": [
+        2,
+        50
+    ],
+    "cond_activations": [
+        "Sigmoid",
+        "tanh",
+        "linear",
+        "ReLU",
+        "biased Elu",
+        "sinus"
+    ],
+    "ploss_activations": [
+        "Sigmoid",
+        "tanh",
+        "linear",
+        "ReLU",
+        "biased Elu",
+        "sinus"
+    ],
+    "lr": [
+        0.0001,
+        0.01
+    ],
+    "lr_factor": [
+        0.01,
+        0.1
+    ],
+    "optimizer": [
+        "Adam",
+        "NAdam"
+    ],
+    "loss_name": [
+        "MSE"
+    ],
+    "tbptt_size": [
+        60,
+        1200
+    ],
+    "sample_time": 0.5,
+    "n_epochs": 5,
+    "input_cols": [
+        "nEm",
+        "tqEm",
+        "uDa",
+        "uQa",
+        "iDa",
+        "iQa",
+        "vfCoolt",
+        "vfeop",
+        "tCoolt",
+        "tNTC"
+    ],
+    "target_cols": [
+        "tOil",
+        "tWinding",
+        "tStator",
+        "tRotor"
+    ],
+    "temperature_cols": [
+        "tCoolt",
+        "tNTC",
+        "tOil",
+        "tWinding",
+        "tStator",
+        "tRotor"
+    ],
+    "device": "cpu",
+    "run_mode": "optimize"
+}
