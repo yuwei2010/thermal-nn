@@ -1,7 +1,6 @@
 import pandas as pd
 import random
 import torch
-import matplotlib.pyplot as plt
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
@@ -9,12 +8,11 @@ import optuna
 import json
 from torch import Tensor
 from tqdm import tqdm
-from sklearn.preprocessing import MinMaxScaler
 from typing import List, Tuple
 from torch.jit import ScriptModule, script_method
 from pathlib import Path
 from torch.optim.lr_scheduler import LambdaLR
-
+from joblib import parallel_backend
 #%%
 
 configs = json.load(open('configs.json', 'r'))
@@ -164,7 +162,7 @@ def train_nn(**kwargs):
     optimizer_name = kwargs.pop("optimizer", "Adam")
     loss_name = kwargs.pop("loss_name", "MSE")
     tbptt_size = kwargs.pop("tbptt_size", 512)
-    n_epochs = kwargs.pop("n_epochs", 100)
+    n_epochs = kwargs.pop("n_epochs")
     trial = kwargs.pop("trial", None)
     device = kwargs.pop("device", "cpu")
 
@@ -274,7 +272,7 @@ def objective(trial: optuna.Trial) -> float:
     lr_factor = trial.suggest_float('lr_factor', *configs['lr_factor'])
     optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'NAdam'])
     loss_name = trial.suggest_categorical('loss_name', configs['loss_name'])
-    tbptt_size = trial.suggest_int('tbptt_size', 50, 512)    
+    tbptt_size = trial.suggest_int('tbptt_size', *configs["tbptt_size"])    
     n_epochs = configs['n_epochs']  # 固定训练轮数
     # 2. 模型训练
     best_train_loss = train_nn(
@@ -307,10 +305,12 @@ if __name__ == "__main__":
             study_name="tnn_optimization",
             load_if_exists=True
         )
-        study.optimize(objective, n_trials=1, show_progress_bar=True)
+        print(f"Starting optimization with {configs['n_epochs']} epochs, {configs['n_jobs']} jobs and {configs['n_trials']} trials...")
+        with parallel_backend('multiprocessing', n_jobs=configs['n_jobs']):  # Overrides `prefer="threads"` to use multi-processing.
+            study.optimize(objective, n_trials=configs['n_trials'], show_progress_bar=True)
     else:
         if Path('models/tnn_model.pt').exists():
             model = torch.jit.load('models/tnn_model.pt')  # load
         else: 
             model = None
-        model = train_nn(model=model, n_epochs=500, lr=1e-3, device=device)
+        model = train_nn(model=model, n_epochs=configs['n_epochs'], lr=configs['lr'], device=device)

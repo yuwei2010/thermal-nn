@@ -31,10 +31,7 @@
         "biased Elu",
         "sinus"
     ],
-    "lr": [
-        0.0001,
-        0.01
-    ],
+    "lr": 0.001,
     "lr_factor": [
         0.01,
         0.1
@@ -51,7 +48,6 @@
         1200
     ],
     "sample_time": 0.5,
-    "n_epochs": 5,
     "input_cols": [
         "nEm",
         "tqEm",
@@ -79,5 +75,8 @@
         "tRotor"
     ],
     "device": "cpu",
-    "run_mode": "optimize"
+    "run_mode": "train",
+    "n_jobs": 1,
+    "n_trials": 1,
+    "n_epochs": 1
 }
