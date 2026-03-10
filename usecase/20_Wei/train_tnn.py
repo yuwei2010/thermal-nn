@@ -1,23 +1,31 @@
+
 import pandas as pd
 import random
 import torch
+import matplotlib.pyplot as plt
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 import optuna
 import json
-import time
 from torch import Tensor
 from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler
 from typing import List, Tuple
 from torch.jit import ScriptModule, script_method
 from pathlib import Path
 from torch.optim.lr_scheduler import LambdaLR
-from joblib import parallel_backend
 #%%
 
-configs = json.load(open('configs.json', 'r'))
-device = configs['device']
+configs = json.load(open("configs.json", "r"))
+device = configs["device"]
+
+#%%
+study = optuna.load_study(study_name="tnn_optimization", storage="sqlite:///optuna.db")
+
+
+best_params = study.best_params
+
 
 #%%
 p = Path(r'data')
@@ -25,6 +33,7 @@ train_tensor = torch.load(p / 'train_tensor.pt').to(device)
 train_sample_weights = torch.load(p / 'train_sample_weights.pt').to(device)
 test_tensor = torch.load(p / 'test_tensor.pt').to(device)
 test_sample_weights = torch.load(p / 'test_sample_weights.pt').to(device)
+
 #%%
 
 # Hyper parameters optimization 
@@ -128,7 +137,6 @@ class TNNCell(nn.Module):
         )
         out = prev_out + self.sample_time * torch.exp(self.caps) * (temp_diffs + power_loss)
         return prev_out, torch.clip(out, -1, 5)
-
 #%%
 # DiffEqLayer定义（支持TorchScript）
 class DiffEqLayer(ScriptModule):
@@ -166,6 +174,7 @@ def train_nn(**kwargs):
     n_epochs = kwargs.pop("n_epochs")
     trial = kwargs.pop("trial", None)
     device = kwargs.pop("device", "cpu")
+    save_path = kwargs.pop("save_path", None)
 
     if not model:
         # 构建模型（传递激活函数列表）
@@ -234,13 +243,10 @@ def train_nn(**kwargs):
         # 记录最佳训练损失
         if avg_epoch_loss < best_train_loss:
             best_train_loss = avg_epoch_loss   
-        if not trial and (epoch + 1) % 50 == 0:
-            
+        if not trial and save_path and (epoch + 1) % 50 == 0:           
             # model saving and loading
-            mdl_path = Path('models')
-            mdl_path.mkdir(exist_ok=True, parents=False)
-            mdl_file_path = mdl_path / 'tnn_model.pt'
-            model.save(mdl_file_path)  # save
+            mdl_path = Path(save_path)
+            model.save(mdl_path)  # save
             print(f"Model saved at epoch {epoch+1} with training loss {avg_epoch_loss:.6f}")
     if trial is not None:
         return best_train_loss      
@@ -248,79 +254,39 @@ def train_nn(**kwargs):
         return model
     
 #%%
-
-def objective(trial: optuna.Trial) -> float:
-    # 1. 超参数采样
-    cond_net_layers = trial.suggest_int('cond_net_layers', *configs['cond_net_layer'])
-    cond_net_units = [trial.suggest_int(f'cond_net_units_{i}', *configs['cond_net_units']) 
-                     for i in range(cond_net_layers)]   
-    ploss_net_layers = trial.suggest_int('ploss_net_layers', *configs['ploss_net_layers'])
-    ploss_net_units = [trial.suggest_int(f'ploss_net_units_{i}', *configs['ploss_net_units']) 
-                      for i in range(ploss_net_layers)]
-    cond_activations = [
-        trial.suggest_categorical(f'cond_activation_{i}', 
-        configs['cond_activations'])
-        for i in range(cond_net_layers)
-    ]
-    # 为ploss_net每层单独采样激活函数
-    ploss_activations = [
-        trial.suggest_categorical(f'ploss_activation_{i}', 
-        configs['ploss_activations'])
-        for i in range(ploss_net_layers)
-    ]    
-
-    lr = 1e-3  # 固定初始学习率，训练过程中动态调整
-    lr_factor = trial.suggest_float('lr_factor', *configs['lr_factor'])
-    optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'NAdam'])
-    loss_name = trial.suggest_categorical('loss_name', configs['loss_name'])
-    tbptt_size = trial.suggest_int('tbptt_size', *configs["tbptt_size"])    
-    n_epochs = configs['n_epochs']  # 固定训练轮数
-    # 2. 模型训练
-    best_train_loss = train_nn(
-        cond_net_layers=cond_net_layers,
-        cond_net_units=cond_net_units,
-        ploss_net_layers=ploss_net_layers,
-        ploss_net_units=ploss_net_units,
-        cond_activations=cond_activations,
-        ploss_activations=ploss_activations,
-        lr=lr,
-        lr_factor=lr_factor,
-        optimizer=optimizer_name,
-        loss_name=loss_name,
-        tbptt_size=tbptt_size,
-        n_epochs=n_epochs,
-        trial=trial,
-        device=device
-    )
-    return best_train_loss
-
+    
 if __name__ == "__main__":
+    n_epochs = 1000
+    lr = 1e-3
+    p = Path(r'models')
+    p.mkdir(exist_ok=True, parents=False)
+    path_model = p / configs["model_name"]
+    
+    if path_model.exists():
+        model = torch.jit.load(path_model)  # load
+    else: 
+        model = None
+    print("Starting training with best hyperparameters from Optuna...")
 
-    if configs['run_mode'] == 'optimize':
-        # 配置共享存储（SQLite或MySQL）
-        count = 0
-        while count < 5:
-            try:
-                storage_name = "sqlite:///optuna.db"
-                study = optuna.create_study(
-                    direction="minimize",
-                    sampler=optuna.samplers.TPESampler(),
-                    storage=storage_name,
-                    study_name="tnn_optimization",
-                    load_if_exists=True
-                )
-                break
-            except Exception as e:
-                print(f"数据库连接失败，正在重试... ({count+1}/5)")
-                time.sleep(5)  # 等待5秒后重试
-                count += 1
-        print(f"Starting optimization with {configs['n_epochs']} epochs, {configs['n_jobs']} jobs and {configs['n_trials']} trials...")
-        with parallel_backend('multiprocessing', n_jobs=configs['n_jobs']):  # Overrides `prefsuber="threads"` to use multi-processing.
-            study.optimize(objective, n_trials=configs['n_trials'], show_progress_bar=True)
-    else:
-        print(f"Starting training with {configs['n_epochs']} epochs and {configs['lr']} learning rate...")
-        if Path('models/tnn_model.pt').exists():
-            model = torch.jit.load('models/tnn_model.pt')  # load
-        else: 
-            model = None
-        model = train_nn(model=model, n_epochs=configs['n_epochs'], lr=configs['lr'], device=device)
+    kwargs = {'model': model,
+              'cond_net_layers': best_params['cond_net_layers'],
+              'cond_net_units': [best_params[f'cond_net_units_{i}'] for i in range(best_params['cond_net_layers'])],
+              'ploss_net_layers': best_params['ploss_net_layers'],
+              'ploss_net_units': [best_params[f'ploss_net_units_{i}'] for i in range(best_params['ploss_net_layers'])],
+                'cond_activations': [best_params[f'cond_activation_{i}'] for i in range(best_params['cond_net_layers'])],
+                'ploss_activations': [best_params[f'ploss_activation_{i}'] for i in range(best_params['ploss_net_layers'])],
+                'sample_time': configs['sample_time'],
+                'input_cols': configs['input_cols'],
+                'target_cols': configs['target_cols'],
+                'temperature_cols': configs['temperature_cols'],
+                'lr': lr,
+                'lr_factor': best_params['lr_factor'],
+                'optimizer': best_params['optimizer'],
+                'loss_name': best_params['loss_name'],
+                'tbptt_size': best_params['tbptt_size'],
+                'n_epochs': n_epochs,
+                'device': device,
+                'save_path': path_model
+                }
+
+    model = train_nn(**kwargs)

@@ -75,8 +75,8 @@
         "tRotor"
     ],
     "device": "cpu",
-    "run_mode": "train",
-    "n_jobs": 1,
-    "n_trials": 1,
-    "n_epochs": 1
+    "run_mode": "optimize",
+    "n_jobs": 8,
+    "n_trials": 1000,
+    "n_epochs": 500
 }
