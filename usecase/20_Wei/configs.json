@@ -1,4 +1,37 @@
 {
+    "job_name": "net_tnn",
+    "comment": null,
+    "device": "cpu",
+    "run_mode": "train",
+    "model_name": "tnn_model.pt",
+    "index_col": "ID",
+    "train_test_split": 0.8,
+    "input_cols": [
+        "nEm",
+        "tqEm",
+        "uDa",
+        "uQa",
+        "iDa",
+        "iQa",
+        "vfCoolt",
+        "vfeop",
+        "tCoolt",
+        "tNTC"
+    ],
+    "target_cols": [
+        "tOil",
+        "tWinding",
+        "tStator",
+        "tRotor"
+    ],
+    "temperature_cols": [
+        "tCoolt",
+        "tNTC",
+        "tOil",
+        "tWinding",
+        "tStator",
+        "tRotor"
+    ],
     "cond_net_layer": [
         1,
         10
@@ -45,38 +78,10 @@
     ],
     "tbptt_size": [
         60,
-        1200
+        1800
     ],
-    "sample_time": 0.5,
-    "input_cols": [
-        "nEm",
-        "tqEm",
-        "uDa",
-        "uQa",
-        "iDa",
-        "iQa",
-        "vfCoolt",
-        "vfeop",
-        "tCoolt",
-        "tNTC"
-    ],
-    "target_cols": [
-        "tOil",
-        "tWinding",
-        "tStator",
-        "tRotor"
-    ],
-    "temperature_cols": [
-        "tCoolt",
-        "tNTC",
-        "tOil",
-        "tWinding",
-        "tStator",
-        "tRotor"
-    ],
-    "device": "cpu",
-    "run_mode": "optimize",
-    "n_jobs": 8,
+    "save_interval": 20,
+    "n_workers": 8,
     "n_trials": 1000,
-    "n_epochs": 500
+    "n_epochs": 200
 }
